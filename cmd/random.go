@@ -4,6 +4,7 @@ Copyright © 2022 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -23,7 +24,7 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("random called")
+		getRandomJoke();
 	},
 }
 
@@ -32,34 +33,46 @@ func init() {
 }
 
 type Joke struct {
-	ID     string `json:id`
-	JOKE   string `json:joke`
-	Status int    `json:status`
+	ID     string `json:"id"`
+	Joke   string `json:"joke"`
+	Status int    `json:"status"`
 }
 
 func getRandomJoke() {
+	url := "https://icanhazdadjoke.com/"
+	responseBytes := getJokeData(url)
+	joke := Joke{}
 
+	if err := json.Unmarshal(responseBytes, &joke); err != nil {
+		log.Printf("Could not unmarshal response -%v", err)
+	}
+
+	fmt.Println(string(joke.Joke))
 }
 
 func getJokeData(baseAPI string) []byte {
-	http.NewRequest(
-		http.MethodGet,
-		baseAPI,
-		nil,
+	request, err := http.NewRequest(
+		http.MethodGet, //method
+		baseAPI,        //url
+		nil,            //body
 	)
+
 	if err != nil {
-		log.Printf("Could not get a dadjoke -%v", err)
+		log.Printf("Could not request a dadjoke. %v", err)
 	}
+
 	request.Header.Add("Accept", "application/json")
-	request.Header.Add("User-Agent", "Dadjoke CLI (github.com/yrs147/go-cli)")
+	request.Header.Add("User-Agent", "Dadjoke CLI (https://github.com/example/dadjoke)")
 
-	response, err := http.DefailtClient.Do(request)
+	response, err := http.DefaultClient.Do(request)
 	if err != nil {
-		log.Printf("Could not make a request -%v", err)
+		log.Printf("Could not make a request. %v", err)
 	}
 
-	responseBytes, err = ioutil.ReadAll(response.Body)
+	responseBytes, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		log.Printf("Could not read response body -%v", err)
+		log.Printf("Could not read response body. %v", err)
 	}
+
+	return responseBytes
 }
